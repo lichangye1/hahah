@@ -1,0 +1,120 @@
+:root {
+  color-scheme: light;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: linear-gradient(180deg, #7ccf6c, #5db35d);
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+}
+
+.game-shell {
+  width: min(95vw, 960px);
+  background: #f6fff6;
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgb(0 0 0 / 25%);
+  padding: 16px;
+}
+
+h1 {
+  margin: 0 0 8px;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.card {
+  border: 1px solid #2f7b32;
+  background: #e7f8e4;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.card.active {
+  outline: 3px solid #2f7b32;
+}
+
+.card.secondary {
+  margin-left: auto;
+  background: #fff;
+}
+
+#hint {
+  margin: 6px 0 10px;
+  color: #204b24;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 4px;
+  background: #4f8d4f;
+  border-radius: 8px;
+  padding: 6px;
+}
+
+.cell {
+  background: #9fe18f;
+  aspect-ratio: 1;
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgb(0 0 0 / 10%);
+}
+
+.plant,
+.zombie,
+.pea {
+  position: absolute;
+  translate: -50% -50%;
+  user-select: none;
+}
+
+.plant {
+  left: 50%;
+  top: 55%;
+  font-size: 28px;
+}
+
+.zombie {
+  left: 95%;
+  top: 55%;
+  font-size: 28px;
+}
+
+.pea {
+  left: 55%;
+  top: 52%;
+  font-size: 14px;
+}
+
+.hp {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  font-size: 10px;
+  background: rgb(255 255 255 / 75%);
+  padding: 1px 4px;
+  border-radius: 10px;
+}
+
+.actions {
+  margin-top: 10px;
+}
+
+#restart {
+  border: none;
+  background: #2f7b32;
+  color: white;
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
