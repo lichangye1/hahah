@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>植物大战僵尸 - 简易版</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="game-shell">
+      <header>
+        <h1>植物大战僵尸（浏览器简易版）</h1>
+        <p>阳光：<span id="sun">150</span> | 波次：<span id="wave">1</span> | 基地血量：<span id="baseHp">5</span></p>
+      </header>
+
+      <section class="toolbar">
+        <button class="card" data-plant="sunflower">🌻 向日葵 (50)</button>
+        <button class="card" data-plant="peashooter">🟢 豌豆射手 (100)</button>
+        <button class="card" data-plant="wallnut">🥔 坚果墙 (75)</button>
+        <button id="cancel" class="card secondary">取消种植</button>
+      </section>
+
+      <p id="hint">请选择植物后点击草地格子种植。</p>
+
+      <section id="board" class="board" aria-label="游戏棋盘"></section>
+
+      <section class="actions">
+        <button id="restart">重新开始</button>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
