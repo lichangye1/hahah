@@ -1,34 +1,1176 @@
 <!doctype html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>植物大战僵尸 - 简易版</title>
-    <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
-    <main class="game-shell">
-      <header>
-        <h1>植物大战僵尸（浏览器简易版）</h1>
-        <p>阳光：<span id="sun">150</span> | 波次：<span id="wave">1</span> | 基地血量：<span id="baseHp">5</span></p>
-      </header>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>深海吞噬者：大鱼吃小鱼</title>
+  <style>
+    :root {
+      --bg1: #02263f;
+      --bg2: #014d78;
+      --bg3: #0f87b5;
+      --panel: rgba(7, 35, 60, 0.74);
+      --border: rgba(185, 230, 255, 0.35);
+      --text: #e9f8ff;
+      --accent: #78efff;
+      --danger: #ff8a94;
+      --good: #8dffba;
+      --glow: 0 0 16px rgba(120, 239, 255, 0.45);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; width: 100%; height: 100%; overflow: hidden;
+      font-family: "PingFang SC", "Microsoft Yahei", "Segoe UI", sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at 20% 20%, #0b6ca2 0%, #03395f 35%, #011a2b 100%);
+      user-select: none;
+    }
+    #gameCanvas { width: 100vw; height: 100vh; display: block; }
 
-      <section class="toolbar">
-        <button class="card" data-plant="sunflower">🌻 向日葵 (50)</button>
-        <button class="card" data-plant="peashooter">🟢 豌豆射手 (100)</button>
-        <button class="card" data-plant="wallnut">🥔 坚果墙 (75)</button>
-        <button id="cancel" class="card secondary">取消种植</button>
-      </section>
+    .overlay {
+      position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(150deg, rgba(1,22,41,.72), rgba(4,47,75,.8));
+      backdrop-filter: blur(6px);
+      z-index: 20;
+    }
+    .hidden { display: none !important; }
+    .panel {
+      width: min(94vw, 740px);
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(2,33,57,0.95), rgba(1,22,40,.92));
+      border-radius: 20px;
+      box-shadow: 0 22px 55px rgba(0,0,0,.45), inset 0 0 50px rgba(91, 222, 255, .07);
+      padding: 26px;
+    }
+    h1, h2, p { margin: 0; }
+    .title {
+      text-align: center; font-size: clamp(28px, 5vw, 48px); font-weight: 900; letter-spacing: 1px;
+      text-shadow: 0 0 25px rgba(120,239,255,.45);
+      margin-bottom: 8px;
+    }
+    .subtitle { text-align: center; opacity: .9; margin-bottom: 16px; }
+    .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 14px; }
+    .card {
+      background: rgba(111, 206, 255, .08); border: 1px solid rgba(124, 220, 255, .25);
+      border-radius: 14px; padding: 12px;
+    }
+    .btns { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 8px; }
+    button {
+      border: 1px solid rgba(146, 231, 255, .45);
+      background: linear-gradient(180deg, #1d9ad8, #0b6ca8);
+      color: #f3fdff; font-weight: 700; letter-spacing: .5px;
+      border-radius: 12px; padding: 10px 18px; cursor: pointer;
+      transition: .18s transform, .18s filter, .18s box-shadow;
+      box-shadow: 0 8px 20px rgba(7, 74, 118, .35);
+    }
+    button:hover { transform: translateY(-1px); filter: brightness(1.08); box-shadow: var(--glow); }
+    button:active { transform: translateY(1px) scale(.98); }
+    button.secondary { background: linear-gradient(180deg, #65768a, #405061); }
 
-      <p id="hint">请选择植物后点击草地格子种植。</p>
+    #hud {
+      position: fixed; left: 10px; right: 10px; top: 10px; z-index: 10;
+      display: grid; grid-template-columns: 1fr auto; gap: 10px;
+      pointer-events: none;
+    }
+    .hud-left {
+      display: grid; grid-template-columns: repeat(4, minmax(100px, 180px));
+      gap: 8px;
+      align-items: stretch;
+    }
+    .hud-box {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 8px 10px;
+      box-shadow: 0 6px 20px rgba(0,0,0,.28);
+    }
+    .hud-box .label { font-size: 12px; opacity: .85; }
+    .hud-box .value { font-size: 18px; font-weight: 800; margin-top: 2px; }
+    .hud-right {
+      display: flex; gap: 8px; pointer-events: auto;
+      align-items: start;
+    }
+    #missionBox, #skillBox {
+      position: fixed; left: 10px; bottom: 10px; z-index: 10;
+      background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px;
+      max-width: min(92vw, 420px);
+    }
+    #skillBox { left: auto; right: 10px; max-width: 260px; }
+    .bar { height: 9px; border-radius: 999px; background: rgba(255,255,255,.14); overflow: hidden; margin-top: 6px; }
+    .fill { height: 100%; width: 0; background: linear-gradient(90deg, #7ff4ff, #2ec9fa); transition: width .15s linear; }
+    .hp-fill { background: linear-gradient(90deg, #89ffbc, #37d98d); }
+    .danger { color: var(--danger); }
+    .good { color: var(--good); }
+    .floating-ui {
+      position: fixed; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9;
+    }
+    .popup {
+      position: absolute; font-weight: 900; text-shadow: 0 2px 10px rgba(0,0,0,.5); animation: rise .9s ease forwards;
+    }
+    @keyframes rise { from { transform: translate(-50%,0) scale(.9); opacity: 0; } 20%{opacity:1;} to { transform: translate(-50%,-36px) scale(1.05); opacity: 0; } }
 
-      <section id="board" class="board" aria-label="游戏棋盘"></section>
+    #touchHint {
+      position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%);
+      background: rgba(1,20,33,.65); border: 1px solid rgba(173,234,255,.28);
+      border-radius: 999px; padding: 6px 14px; font-size: 12px; z-index: 11;
+      pointer-events: none;
+    }
 
-      <section class="actions">
-        <button id="restart">重新开始</button>
-      </section>
-    </main>
+    @media (max-width: 860px) {
+      .hud-left { grid-template-columns: repeat(2, minmax(110px, 1fr)); }
+      #hud { top: 6px; left: 6px; right: 6px; }
+      #missionBox, #skillBox { font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
 
-    <script src="script.js"></script>
-  </body>
+  <div id="hud" class="hidden">
+    <div class="hud-left">
+      <div class="hud-box"><div class="label">分数</div><div id="scoreText" class="value">0</div></div>
+      <div class="hud-box"><div class="label">等级 / 体型</div><div id="levelText" class="value">Lv1 / 12</div></div>
+      <div class="hud-box"><div class="label">生命值</div><div id="hpText" class="value">100</div><div class="bar"><div id="hpBar" class="fill hp-fill"></div></div></div>
+      <div class="hud-box"><div class="label">连击</div><div id="comboText" class="value">x0</div></div>
+    </div>
+    <div class="hud-right">
+      <button id="pauseBtn">暂停</button>
+      <button id="muteBtn" class="secondary">音效：开</button>
+    </div>
+  </div>
+
+  <div id="missionBox" class="hidden">
+    <div><strong>当前任务：</strong><span id="missionText"></span></div>
+    <div class="bar"><div id="missionBar" class="fill"></div></div>
+  </div>
+  <div id="skillBox" class="hidden">
+    <div>冲刺冷却：<span id="dashText">就绪</span></div>
+    <div class="bar"><div id="dashBar" class="fill"></div></div>
+    <div id="buffText" style="margin-top:6px;opacity:.95;">增益：无</div>
+  </div>
+
+  <div class="floating-ui" id="floatingLayer"></div>
+  <div id="touchHint" class="hidden">触控：拖动屏幕控制方向，双击冲刺</div>
+
+  <section id="startMenu" class="overlay">
+    <div class="panel">
+      <h1 class="title">深海吞噬者：大鱼吃小鱼</h1>
+      <p class="subtitle">成长、吞噬、躲避危机，挑战你的生存极限！</p>
+      <div class="grid">
+        <div class="card"><b>操作</b><br>鼠标/触摸控制方向，<b>Shift / 空格</b>冲刺。<br>按 <b>P</b> 可暂停。</div>
+        <div class="card"><b>目标</b><br>吃小鱼和食物升级，避开大鱼、炸弹鱼和毒域，完成任务拿高分。</div>
+        <div class="card"><b>道具</b><br>无敌、加速、磁吸、回复、双倍分，后期策略关键。</div>
+        <div class="card"><b>最高纪录</b><br><span id="bestText">0</span></div>
+      </div>
+      <div class="btns">
+        <button id="startBtn">开始游戏</button>
+        <button id="startMuteBtn" class="secondary">音效：开</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="pauseMenu" class="overlay hidden">
+    <div class="panel" style="max-width:520px; text-align:center;">
+      <h2 style="margin-bottom:12px;">已暂停</h2>
+      <p style="opacity:.9;margin-bottom:16px;">深呼吸，准备继续猎食。</p>
+      <div class="btns"><button id="resumeBtn">继续游戏</button><button id="toMenuBtn" class="secondary">返回主菜单</button></div>
+    </div>
+  </section>
+
+  <section id="gameOverMenu" class="overlay hidden">
+    <div class="panel" style="max-width:560px; text-align:center;">
+      <h2 style="font-size:36px;margin-bottom:10px;">你被深海吞没了</h2>
+      <div class="grid" style="text-align:left; margin-top:14px;">
+        <div class="card">本局得分：<b id="finalScore">0</b></div>
+        <div class="card">生存时间：<b id="finalTime">0s</b></div>
+        <div class="card">吞食数量：<b id="finalEats">0</b></div>
+        <div class="card">最高纪录：<b id="finalBest">0</b></div>
+      </div>
+      <div class="btns"><button id="restartBtn">重新开始</button><button id="overMenuBtn" class="secondary">主菜单</button></div>
+    </div>
+  </section>
+
+  <script>
+  (() => {
+    "use strict";
+    // ===== 常量配置 =====
+    const WORLD = { w: 5200, h: 3200 };
+    const STATE = { MENU: "menu", RUNNING: "running", PAUSED: "paused", OVER: "over" };
+    const POWERUP_TYPES = ["invincible", "haste", "magnet", "heal", "double"];
+    const FOOD_TYPES = [
+      { key: "plankton", r: [4, 9], color: "#9effd9", score: 6, exp: 6 },
+      { key: "shrimp", r: [8, 14], color: "#ffb57f", score: 12, exp: 10 },
+      { key: "tinyFish", r: [10, 18], color: "#f9f871", score: 18, exp: 14 }
+    ];
+
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    let vw = 0, vh = 0, dpr = 1;
+
+    const ui = {
+      hud: q("hud"), missionBox: q("missionBox"), skillBox: q("skillBox"), touchHint: q("touchHint"),
+      startMenu: q("startMenu"), pauseMenu: q("pauseMenu"), gameOverMenu: q("gameOverMenu"),
+      scoreText: q("scoreText"), levelText: q("levelText"), hpText: q("hpText"), hpBar: q("hpBar"), comboText: q("comboText"),
+      missionText: q("missionText"), missionBar: q("missionBar"), dashText: q("dashText"), dashBar: q("dashBar"), buffText: q("buffText"),
+      bestText: q("bestText"), finalScore: q("finalScore"), finalTime: q("finalTime"), finalEats: q("finalEats"), finalBest: q("finalBest"),
+      floating: q("floatingLayer"), muteBtn: q("muteBtn"), startMuteBtn: q("startMuteBtn")
+    };
+
+    const game = {
+      state: STATE.MENU,
+      soundsOn: true,
+      now: 0,
+      elapsed: 0,
+      score: 0,
+      kills: 0,
+      combo: 0,
+      comboTimer: 0,
+      highestCombo: 0,
+      player: null,
+      camera: { x: 0, y: 0 },
+      entities: { foods: [], enemies: [], hazards: [], powerups: [], particles: [], bgFish: [] },
+      mission: null,
+      levelCurve: [0, 120, 320, 600, 980, 1450, 2000, 2680, 3500, 4480, 5600, 6900, 8400],
+      spawnClock: { food: 0, enemy: 0, hazard: 0, power: 0 },
+      best: Number(localStorage.getItem("bigfish_highscore") || 0),
+      lastTs: 0,
+      pointer: { x: 0, y: 0, active: false, doubleTapAt: 0 },
+      keys: new Set(),
+      rngSeed: Math.random() * 99999
+    };
+
+    // ===== 初始化 =====
+    bindEvents();
+    resize();
+    refreshBest();
+    requestAnimationFrame(loop);
+
+    function q(id) { return document.getElementById(id); }
+
+    function bindEvents() {
+      window.addEventListener("resize", resize);
+      window.addEventListener("mousemove", (e) => setPointer(e.clientX, e.clientY, true));
+      window.addEventListener("touchstart", onTouchStart, { passive: false });
+      window.addEventListener("touchmove", onTouchMove, { passive: false });
+      window.addEventListener("touchend", () => { game.pointer.active = false; });
+
+      window.addEventListener("keydown", (e) => {
+        const k = e.key.toLowerCase();
+        game.keys.add(k);
+        if (k === "p") togglePause();
+        if ((k === " " || k === "shift") && game.state === STATE.RUNNING) tryDash();
+      });
+      window.addEventListener("keyup", (e) => game.keys.delete(e.key.toLowerCase()));
+
+      q("startBtn").onclick = startGame;
+      q("restartBtn").onclick = startGame;
+      q("overMenuBtn").onclick = () => showMenu(true);
+      q("pauseBtn").onclick = togglePause;
+      q("resumeBtn").onclick = togglePause;
+      q("toMenuBtn").onclick = () => showMenu(true);
+      q("muteBtn").onclick = toggleMute;
+      q("startMuteBtn").onclick = toggleMute;
+    }
+
+    function resize() {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      vw = window.innerWidth;
+      vh = window.innerHeight;
+      canvas.width = Math.floor(vw * dpr);
+      canvas.height = Math.floor(vh * dpr);
+      canvas.style.width = vw + "px";
+      canvas.style.height = vh + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ui.touchHint.classList.toggle("hidden", !("ontouchstart" in window));
+    }
+
+    // ===== 核心类 =====
+    class Fish {
+      constructor(x, y, size, color) {
+        this.x = x; this.y = y; this.vx = 0; this.vy = 0;
+        this.size = size; this.baseSize = size;
+        this.color = color;
+        this.dir = 0;
+      }
+      draw(cam) {
+        const sx = this.x - cam.x, sy = this.y - cam.y;
+        if (sx < -80 || sy < -80 || sx > vw + 80 || sy > vh + 80) return;
+        ctx.save();
+        ctx.translate(sx, sy);
+        ctx.rotate(this.dir);
+        const s = this.size;
+
+        // 鱼尾
+        ctx.fillStyle = shade(this.color, -25);
+        ctx.beginPath();
+        ctx.moveTo(-s * 1.1, 0);
+        ctx.lineTo(-s * 1.55, -s * 0.52);
+        ctx.lineTo(-s * 1.55, s * 0.52);
+        ctx.closePath();
+        ctx.fill();
+
+        // 鱼身
+        const grad = ctx.createLinearGradient(-s, -s, s, s);
+        grad.addColorStop(0, shade(this.color, 18));
+        grad.addColorStop(.65, this.color);
+        grad.addColorStop(1, shade(this.color, -22));
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, s * 1.2, s * .8, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 鳍
+        ctx.fillStyle = shade(this.color, -12);
+        ctx.beginPath();
+        ctx.moveTo(-s * .2, -s * .2);
+        ctx.lineTo(s * .45, -s * .75);
+        ctx.lineTo(s * .1, -s * .12);
+        ctx.fill();
+
+        // 眼睛
+        ctx.fillStyle = "#f7ffff";
+        ctx.beginPath();
+        ctx.arc(s * .58, -s * .12, Math.max(2, s * .14), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#03253b";
+        ctx.beginPath();
+        ctx.arc(s * .63, -s * .12, Math.max(1.5, s * .08), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    class Player extends Fish {
+      constructor(x, y) {
+        super(x, y, 14, "#60e7ff");
+        this.level = 1;
+        this.exp = 0;
+        this.maxHp = 100;
+        this.hp = 100;
+        this.multiplier = 1;
+        this.dashCooldown = 0;
+        this.dashTime = 0;
+        this.invincible = 0;
+        this.magnet = 0;
+        this.doubleScore = 0;
+        this.haste = 0;
+        this.hurtFlash = 0;
+      }
+      get speed() {
+        const base = 188 - this.size * 1.18;
+        const sp = Math.max(85, base) * (this.haste > 0 ? 1.42 : 1);
+        return this.dashTime > 0 ? sp * 2.2 : sp;
+      }
+      get eatRadius() { return this.size * 0.95 + this.level * 1.4; }
+      update(dt) {
+        this.dashCooldown = Math.max(0, this.dashCooldown - dt);
+        this.dashTime = Math.max(0, this.dashTime - dt);
+        this.invincible = Math.max(0, this.invincible - dt);
+        this.magnet = Math.max(0, this.magnet - dt);
+        this.doubleScore = Math.max(0, this.doubleScore - dt);
+        this.haste = Math.max(0, this.haste - dt);
+        this.hurtFlash = Math.max(0, this.hurtFlash - dt);
+
+        const tx = game.pointer.active ? game.pointer.x : vw * 0.5;
+        const ty = game.pointer.active ? game.pointer.y : vh * 0.5;
+        const worldTargetX = tx + game.camera.x;
+        const worldTargetY = ty + game.camera.y;
+
+        const dx = worldTargetX - this.x;
+        const dy = worldTargetY - this.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        const accel = this.speed * (dist > 8 ? 1 : dist / 8);
+        this.vx += (dx / dist * accel - this.vx) * Math.min(1, dt * 7);
+        this.vy += (dy / dist * accel - this.vy) * Math.min(1, dt * 7);
+
+        this.x += this.vx * dt;
+        this.y += this.vy * dt;
+        this.x = clamp(this.x, 0, WORLD.w);
+        this.y = clamp(this.y, 0, WORLD.h);
+        this.dir = Math.atan2(this.vy, this.vx);
+
+        if (game.keys.has("shift") || game.keys.has(" ")) {
+          if (this.dashCooldown <= 0 && this.dashTime <= 0) tryDash();
+        }
+      }
+      gainExp(exp) {
+        this.exp += exp;
+        while (this.level < game.levelCurve.length - 1 && this.exp >= game.levelCurve[this.level]) {
+          this.level++;
+          this.size += 3.4;
+          this.maxHp += 9;
+          this.hp = Math.min(this.maxHp, this.hp + 14);
+          this.multiplier += 0.07;
+          burst(this.x, this.y, 26, "#9dfbff", 280);
+          popup(this.x, this.y, `升级! Lv${this.level}`, "#7ef7ff", 22);
+          playSfx("levelup");
+        }
+      }
+      applyPower(type) {
+        switch (type) {
+          case "invincible": this.invincible = Math.max(this.invincible, 8); popup(this.x, this.y, "无敌+8秒", "#f8ff8f"); break;
+          case "haste": this.haste = Math.max(this.haste, 9); popup(this.x, this.y, "加速+9秒", "#94ffcc"); break;
+          case "magnet": this.magnet = Math.max(this.magnet, 10); popup(this.x, this.y, "磁吸+10秒", "#ffb6ff"); break;
+          case "heal": this.hp = Math.min(this.maxHp, this.hp + this.maxHp * 0.28); popup(this.x, this.y, "生命恢复", "#97ffb7"); break;
+          case "double": this.doubleScore = Math.max(this.doubleScore, 12); popup(this.x, this.y, "双倍分+12秒", "#ffc878"); break;
+        }
+      }
+      draw(cam) {
+        if (this.hurtFlash > 0 && Math.floor(game.now * 26) % 2 === 0) return;
+        super.draw(cam);
+        if (this.invincible > 0) {
+          const sx = this.x - cam.x, sy = this.y - cam.y;
+          ctx.save();
+          ctx.strokeStyle = "rgba(255,247,130,.7)";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(sx, sy, this.size * 1.5, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+    }
+
+    class EnemyFish extends Fish {
+      constructor(x, y, size, color, elite = false) {
+        super(x, y, size, color);
+        this.elite = elite;
+        this.hp = size * (elite ? 6.8 : 4.4);
+        this.maxHp = this.hp;
+        this.speedBase = 64 + rand(0, 52) + (elite ? 25 : 0);
+        this.turnTimer = rand(.4, 2.2);
+        this.targetDir = rand(-Math.PI, Math.PI);
+      }
+      update(dt) {
+        this.turnTimer -= dt;
+        if (this.turnTimer <= 0) {
+          this.turnTimer = rand(.4, 1.8);
+          this.targetDir = rand(-Math.PI, Math.PI);
+        }
+
+        // AI: 躲大鱼、追小鱼、漫游
+        let desireX = Math.cos(this.targetDir), desireY = Math.sin(this.targetDir);
+        const p = game.player;
+        const dxp = p.x - this.x, dyp = p.y - this.y, dp = Math.hypot(dxp, dyp) || 1;
+        const playerBigger = p.size > this.size * 1.18;
+        const canHuntPlayer = this.size > p.size * 1.2;
+
+        if (playerBigger && dp < 400) {
+          desireX = -dxp / dp; desireY = -dyp / dp;
+        } else if (canHuntPlayer && dp < 520) {
+          desireX = dxp / dp; desireY = dyp / dp;
+        } else {
+          // 找周围食物
+          const prey = nearest(game.entities.foods, this.x, this.y, 320, f => f.r < this.size * 0.9);
+          if (prey) {
+            const dx = prey.x - this.x, dy = prey.y - this.y, d = Math.hypot(dx, dy) || 1;
+            desireX = dx / d; desireY = dy / d;
+          }
+        }
+
+        const speed = this.speedBase * (this.elite ? 1.08 : 1);
+        this.vx += (desireX * speed - this.vx) * Math.min(1, dt * 2.7);
+        this.vy += (desireY * speed - this.vy) * Math.min(1, dt * 2.7);
+        this.x += this.vx * dt; this.y += this.vy * dt;
+
+        // 边界反弹
+        if (this.x < 0 || this.x > WORLD.w) this.vx *= -1;
+        if (this.y < 0 || this.y > WORLD.h) this.vy *= -1;
+        this.x = clamp(this.x, 0, WORLD.w); this.y = clamp(this.y, 0, WORLD.h);
+        this.dir = Math.atan2(this.vy, this.vx);
+      }
+      draw(cam) {
+        super.draw(cam);
+        if (this.elite) {
+          const sx = this.x - cam.x, sy = this.y - cam.y;
+          ctx.save();
+          ctx.strokeStyle = "rgba(255,190,90,.75)";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(sx, sy, this.size * 1.45, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+    }
+
+    // ===== 游戏流程 =====
+    function startGame() {
+      game.state = STATE.RUNNING;
+      game.elapsed = 0; game.score = 0; game.kills = 0;
+      game.combo = 0; game.comboTimer = 0; game.highestCombo = 0;
+      game.entities.foods.length = 0;
+      game.entities.enemies.length = 0;
+      game.entities.hazards.length = 0;
+      game.entities.powerups.length = 0;
+      game.entities.particles.length = 0;
+      game.entities.bgFish = Array.from({ length: 26 }, () => ({
+        x: rand(0, WORLD.w), y: rand(0, WORLD.h), r: rand(10, 28), speed: rand(6, 22), dir: rand(-.4, .4),
+        alpha: rand(.05, .2)
+      }));
+
+      game.player = new Player(WORLD.w * 0.5, WORLD.h * 0.5);
+      game.camera.x = game.player.x - vw * 0.5;
+      game.camera.y = game.player.y - vh * 0.5;
+      game.spawnClock = { food: 0, enemy: 0, hazard: 6, power: 10 };
+
+      for (let i = 0; i < 130; i++) spawnFood(true);
+      for (let i = 0; i < 18; i++) spawnEnemy(true);
+      chooseMission();
+      setPanels(true, false, false);
+      updateHUD();
+    }
+
+    function showMenu(fromGame = false) {
+      game.state = STATE.MENU;
+      if (fromGame) refreshBest();
+      setPanels(false, false, false);
+      ui.startMenu.classList.remove("hidden");
+      ui.pauseMenu.classList.add("hidden");
+      ui.gameOverMenu.classList.add("hidden");
+    }
+
+    function togglePause() {
+      if (game.state === STATE.RUNNING) {
+        game.state = STATE.PAUSED;
+        ui.pauseMenu.classList.remove("hidden");
+      } else if (game.state === STATE.PAUSED) {
+        game.state = STATE.RUNNING;
+        ui.pauseMenu.classList.add("hidden");
+      }
+    }
+
+    function gameOver() {
+      game.state = STATE.OVER;
+      ui.gameOverMenu.classList.remove("hidden");
+      ui.finalScore.textContent = Math.floor(game.score);
+      ui.finalTime.textContent = `${Math.floor(game.elapsed)}s`;
+      ui.finalEats.textContent = game.kills;
+      if (game.score > game.best) {
+        game.best = Math.floor(game.score);
+        localStorage.setItem("bigfish_highscore", game.best);
+      }
+      ui.finalBest.textContent = game.best;
+      refreshBest();
+    }
+
+    function setPanels(hud, pause, over) {
+      ui.hud.classList.toggle("hidden", !hud);
+      ui.missionBox.classList.toggle("hidden", !hud);
+      ui.skillBox.classList.toggle("hidden", !hud);
+      ui.startMenu.classList.toggle("hidden", hud || pause || over);
+      ui.pauseMenu.classList.toggle("hidden", !pause);
+      ui.gameOverMenu.classList.toggle("hidden", !over);
+    }
+
+    function refreshBest() { ui.bestText.textContent = game.best; }
+
+    // ===== 主循环 =====
+    function loop(ts) {
+      if (!game.lastTs) game.lastTs = ts;
+      const dt = Math.min(0.033, (ts - game.lastTs) / 1000);
+      game.lastTs = ts;
+      game.now += dt;
+
+      if (game.state === STATE.RUNNING) {
+        game.elapsed += dt;
+        updateGame(dt);
+      }
+      render();
+      requestAnimationFrame(loop);
+    }
+
+    function updateGame(dt) {
+      const p = game.player;
+      p.update(dt);
+
+      // 摄像机跟随
+      game.camera.x += ((p.x - vw * .5) - game.camera.x) * Math.min(1, dt * 4.5);
+      game.camera.y += ((p.y - vh * .5) - game.camera.y) * Math.min(1, dt * 4.5);
+      game.camera.x = clamp(game.camera.x, 0, WORLD.w - vw);
+      game.camera.y = clamp(game.camera.y, 0, WORLD.h - vh);
+
+      // 背景鱼
+      for (const b of game.entities.bgFish) {
+        b.x += Math.cos(b.dir) * b.speed * dt;
+        b.y += Math.sin(b.dir) * b.speed * dt;
+        if (b.x < -60) b.x = WORLD.w + 60;
+        if (b.x > WORLD.w + 60) b.x = -60;
+        if (b.y < -60) b.y = WORLD.h + 60;
+        if (b.y > WORLD.h + 60) b.y = -60;
+      }
+
+      // 生成器（难度递进）
+      const diff = 1 + game.elapsed / 90;
+      game.spawnClock.food -= dt; game.spawnClock.enemy -= dt; game.spawnClock.hazard -= dt; game.spawnClock.power -= dt;
+      if (game.entities.foods.length < 220 && game.spawnClock.food <= 0) { spawnFood(); game.spawnClock.food = 0.04 + Math.random() * .07; }
+      if (game.entities.enemies.length < 22 + diff * 5 && game.spawnClock.enemy <= 0) { spawnEnemy(); game.spawnClock.enemy = Math.max(.65, 1.8 - diff * .12); }
+      if (game.elapsed > 45 && game.entities.hazards.length < 8 + diff * 3 && game.spawnClock.hazard <= 0) { spawnHazard(); game.spawnClock.hazard = Math.max(3.4, 8 - diff * .35); }
+      if (game.spawnClock.power <= 0) { spawnPowerup(); game.spawnClock.power = rand(10, 17); }
+
+      // 食物（磁吸）
+      for (let i = game.entities.foods.length - 1; i >= 0; i--) {
+        const f = game.entities.foods[i];
+        if (p.magnet > 0) {
+          const dx = p.x - f.x, dy = p.y - f.y, d = Math.hypot(dx, dy) || 1;
+          if (d < 280) {
+            const pull = (280 - d) * 0.9;
+            f.x += dx / d * pull * dt;
+            f.y += dy / d * pull * dt;
+          }
+        }
+        if (canEat(p, f.r)) {
+          const d = dist(p, f);
+          if (d < p.eatRadius + f.r) {
+            onEatFood(f);
+            game.entities.foods.splice(i, 1);
+          }
+        }
+      }
+
+      // 敌鱼
+      for (let i = game.entities.enemies.length - 1; i >= 0; i--) {
+        const e = game.entities.enemies[i];
+        e.update(dt);
+
+        // 敌鱼吃食物
+        for (let j = game.entities.foods.length - 1; j >= 0; j--) {
+          const f = game.entities.foods[j];
+          if (f.r < e.size * .72 && Math.hypot(e.x - f.x, e.y - f.y) < e.size + f.r * .7) {
+            e.size += 0.05;
+            game.entities.foods.splice(j, 1);
+            if (Math.random() < .2) break;
+          }
+        }
+
+        // 与玩家碰撞
+        const d = dist(e, p);
+        if (d < e.size + p.size * .85) {
+          if (p.size > e.size * 1.12 || p.invincible > 0) {
+            const gain = Math.round((e.size * 13 + (e.elite ? 180 : 30)) * p.multiplier * (p.doubleScore > 0 ? 2 : 1));
+            game.score += gain;
+            p.gainExp(Math.round(e.size * (e.elite ? 26 : 11)));
+            game.kills++;
+            triggerCombo(gain, e.x, e.y, e.elite);
+            burst(e.x, e.y, e.elite ? 42 : 26, e.elite ? "#ffd18f" : "#95fbff", e.elite ? 400 : 280);
+            if (game.mission?.type === "elite" && e.elite) { game.mission.progress++; }
+            game.entities.enemies.splice(i, 1);
+            playSfx("eatFish");
+            continue;
+          }
+          if (e.size > p.size * 1.08 && p.invincible <= 0) {
+            const hurt = (e.size - p.size) * 0.13 + (e.elite ? 11 : 6);
+            damagePlayer(hurt);
+            const nx = (p.x - e.x) / (d || 1), ny = (p.y - e.y) / (d || 1);
+            p.x += nx * 18; p.y += ny * 18;
+          }
+        }
+      }
+
+      // 危险物
+      for (let i = game.entities.hazards.length - 1; i >= 0; i--) {
+        const h = game.entities.hazards[i];
+        h.life -= dt;
+        if (h.kind === "jelly") {
+          h.phase += dt * 2.3;
+          h.y += Math.sin(h.phase) * 14 * dt;
+        } else if (h.kind === "whirl") {
+          const dx = h.x - p.x, dy = h.y - p.y, d = Math.hypot(dx, dy) || 1;
+          if (d < h.r * 2.6) {
+            p.vx += dx / d * (h.r * 1.3) * dt;
+            p.vy += dy / d * (h.r * 1.3) * dt;
+            if (d < h.r + p.size && p.invincible <= 0) damagePlayer(11 * dt);
+          }
+        } else if (h.kind === "toxic") {
+          if (dist(h, p) < h.r + p.size * .65 && p.invincible <= 0) damagePlayer(8.5 * dt);
+        } else if (h.kind === "bomb") {
+          if (!h.triggered && dist(h, p) < h.r + p.size + 16) {
+            h.triggered = true;
+            h.timer = .55;
+          }
+          if (h.triggered) {
+            h.timer -= dt;
+            if (h.timer <= 0) {
+              explodeBomb(h);
+              game.entities.hazards.splice(i, 1);
+              continue;
+            }
+          }
+        }
+        if (h.life <= 0 && h.kind !== "bomb") game.entities.hazards.splice(i, 1);
+      }
+
+      // 道具
+      for (let i = game.entities.powerups.length - 1; i >= 0; i--) {
+        const it = game.entities.powerups[i];
+        it.life -= dt; it.float += dt * 2.5;
+        if (dist(it, p) < p.size + it.r + 8) {
+          p.applyPower(it.type);
+          game.entities.powerups.splice(i, 1);
+          burst(it.x, it.y, 20, "#ffffff", 200);
+          playSfx("power");
+          continue;
+        }
+        if (it.life <= 0) game.entities.powerups.splice(i, 1);
+      }
+
+      // 粒子清理
+      for (let i = game.entities.particles.length - 1; i >= 0; i--) {
+        const t = game.entities.particles[i];
+        t.life -= dt;
+        t.x += t.vx * dt; t.y += t.vy * dt;
+        t.vy += t.gravity * dt;
+        if (t.life <= 0) game.entities.particles.splice(i, 1);
+      }
+
+      // 冲刺尾迹
+      if (p.dashTime > 0) {
+        if (Math.random() < 0.7) game.entities.particles.push({
+          x: p.x - Math.cos(p.dir) * p.size * .8 + rand(-3,3),
+          y: p.y - Math.sin(p.dir) * p.size * .8 + rand(-3,3),
+          vx: -Math.cos(p.dir) * rand(20,60), vy: -Math.sin(p.dir) * rand(20,60), gravity: 0,
+          life: rand(.2,.35), maxLife: .35, size: rand(2,4), color: "#91ecff"
+        });
+      }
+
+      // 连击超时
+      if (game.comboTimer > 0) game.comboTimer -= dt;
+      else game.combo = 0;
+
+      // 任务检查
+      updateMission(dt);
+      updateHUD();
+
+      if (p.hp <= 0) gameOver();
+    }
+
+    function render() {
+      drawBackground();
+      if (!game.player) return;
+
+      const cam = game.camera;
+      // 背景鱼群
+      for (const b of game.entities.bgFish) drawBgFish(b, cam);
+
+      // 食物
+      for (const f of game.entities.foods) drawFood(f, cam);
+      // 道具
+      for (const it of game.entities.powerups) drawPowerup(it, cam);
+      // 危险
+      for (const h of game.entities.hazards) drawHazard(h, cam);
+      // 敌鱼与玩家
+      for (const e of game.entities.enemies) e.draw(cam);
+      game.player.draw(cam);
+      // 粒子
+      drawParticles(cam);
+    }
+
+    // ===== 绘制 =====
+    function drawBackground() {
+      const g = ctx.createLinearGradient(0, 0, 0, vh);
+      g.addColorStop(0, "#0b7eb2"); g.addColorStop(.45, "#025f92"); g.addColorStop(1, "#013450");
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, vw, vh);
+
+      // 光束
+      for (let i = 0; i < 4; i++) {
+        const x = ((i * 430 + game.now * 12) % (vw + 280)) - 140;
+        const grad = ctx.createLinearGradient(x, 0, x + 160, vh);
+        grad.addColorStop(0, "rgba(165,234,255,.13)");
+        grad.addColorStop(1, "rgba(165,234,255,0)");
+        ctx.fillStyle = grad;
+        ctx.fillRect(x, 0, 160, vh);
+      }
+
+      // 远景泡泡
+      ctx.globalAlpha = .25;
+      for (let i = 0; i < 35; i++) {
+        const bx = (i * 97 + game.now * 18) % (vw + 60);
+        const by = (vh - ((i * 109 + game.now * (24 + i % 6)) % (vh + 80)));
+        ctx.beginPath();
+        ctx.arc(bx, by, 1.5 + (i % 3), 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(200,245,255,.7)";
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+
+      // 海草
+      ctx.strokeStyle = "rgba(58,170,120,.33)";
+      ctx.lineWidth = 3;
+      for (let i = 0; i < 28; i++) {
+        const x = i * (vw / 27);
+        ctx.beginPath();
+        ctx.moveTo(x, vh);
+        ctx.quadraticCurveTo(x + Math.sin(game.now * 1.5 + i) * 12, vh - 45, x + Math.sin(game.now * 1.2 + i) * 6, vh - 95);
+        ctx.stroke();
+      }
+    }
+
+    function drawBgFish(b, cam) {
+      const sx = b.x - cam.x, sy = b.y - cam.y;
+      if (sx < -80 || sy < -80 || sx > vw + 80 || sy > vh + 80) return;
+      ctx.save();
+      ctx.globalAlpha = b.alpha;
+      ctx.translate(sx, sy);
+      ctx.rotate(b.dir);
+      ctx.fillStyle = "#d9f6ff";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, b.r * 1.3, b.r * .8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    }
+
+    function drawFood(f, cam) {
+      const sx = f.x - cam.x, sy = f.y - cam.y;
+      if (sx < -24 || sy < -24 || sx > vw + 24 || sy > vh + 24) return;
+      ctx.save();
+      ctx.translate(sx, sy);
+      if (f.kind === "tinyFish") {
+        ctx.rotate(f.wobble + Math.sin(game.now * 4 + f.seed) * .5);
+        ctx.fillStyle = f.color;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, f.r * 1.2, f.r * .8, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(-f.r*1.1, 0); ctx.lineTo(-f.r*1.55, -f.r*.42); ctx.lineTo(-f.r*1.55, f.r*.42); ctx.closePath();
+        ctx.fill();
+      } else {
+        ctx.fillStyle = f.color;
+        ctx.beginPath();
+        ctx.arc(0, 0, f.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawPowerup(it, cam) {
+      const sx = it.x - cam.x, sy = it.y - cam.y;
+      if (sx < -30 || sy < -30 || sx > vw + 30 || sy > vh + 30) return;
+      const pulse = 1 + Math.sin(game.now * 4 + it.float) * .14;
+      ctx.save();
+      ctx.translate(sx, sy);
+      ctx.scale(pulse, pulse);
+      ctx.fillStyle = it.color;
+      ctx.beginPath();
+      ctx.arc(0, 0, it.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255,255,255,.75)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = "#05253a";
+      ctx.font = "bold 12px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(it.icon, 0, 0);
+      ctx.restore();
+    }
+
+    function drawHazard(h, cam) {
+      const sx = h.x - cam.x, sy = h.y - cam.y;
+      if (sx < -100 || sy < -100 || sx > vw + 100 || sy > vh + 100) return;
+      ctx.save();
+      ctx.translate(sx, sy);
+      if (h.kind === "jelly") {
+        ctx.fillStyle = "rgba(255,155,214,.72)";
+        ctx.beginPath();
+        ctx.arc(0, 0, h.r, Math.PI, Math.PI*2);
+        ctx.lineTo(h.r, 0); ctx.lineTo(-h.r, 0); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = "rgba(255,185,225,.85)";
+        for (let i = -2; i <= 2; i++) {
+          ctx.beginPath();
+          ctx.moveTo(i * h.r * .3, 0);
+          ctx.quadraticCurveTo(i * h.r * .3 + Math.sin(game.now * 6 + i) * 4, h.r + 8, i * h.r * .25, h.r * 1.8);
+          ctx.stroke();
+        }
+      } else if (h.kind === "whirl") {
+        ctx.strokeStyle = "rgba(130,220,255,.65)";
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 4; i++) {
+          ctx.beginPath();
+          ctx.arc(0, 0, h.r * (.3 + i * .22), game.now * 2.2 + i, game.now * 2.2 + i + Math.PI * 1.2);
+          ctx.stroke();
+        }
+      } else if (h.kind === "toxic") {
+        ctx.fillStyle = "rgba(120,255,126,.2)";
+        ctx.beginPath(); ctx.arc(0, 0, h.r, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = "rgba(145,255,167,.42)";
+        ctx.stroke();
+      } else if (h.kind === "bomb") {
+        ctx.fillStyle = h.triggered ? "#ff8978" : "#ffb67a";
+        ctx.beginPath(); ctx.arc(0, 0, h.r, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "#5f1600";
+        ctx.fillRect(-2, -h.r - 6, 4, 8);
+        if (h.triggered) {
+          ctx.strokeStyle = "rgba(255,92,92,.7)";
+          ctx.beginPath(); ctx.arc(0,0,h.r + 8 + Math.sin(game.now*24)*3,0,Math.PI*2); ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+
+    function drawParticles(cam) {
+      for (const p of game.entities.particles) {
+        const sx = p.x - cam.x, sy = p.y - cam.y;
+        const a = Math.max(0, p.life / p.maxLife);
+        ctx.globalAlpha = a;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(sx, sy, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // ===== 逻辑函数 =====
+    function spawnFood(initial = false) {
+      const type = FOOD_TYPES[Math.floor(Math.random() * FOOD_TYPES.length)];
+      const r = rand(type.r[0], type.r[1]);
+      game.entities.foods.push({
+        x: rand(20, WORLD.w - 20), y: rand(20, WORLD.h - 20),
+        r, kind: type.key, color: type.color, score: type.score, exp: type.exp,
+        wobble: rand(-.6, .6), seed: Math.random() * 30
+      });
+      if (!initial && game.entities.foods.length > 260) game.entities.foods.shift();
+    }
+
+    function spawnEnemy(initial = false) {
+      const p = game.player;
+      const spawnSafe = () => {
+        let x, y, tries = 0;
+        do { x = rand(0, WORLD.w); y = rand(0, WORLD.h); tries++; }
+        while (p && Math.hypot(x - p.x, y - p.y) < 260 && tries < 10);
+        return { x, y };
+      };
+      const pos = spawnSafe();
+      const lv = p ? p.level : 1;
+      const minSize = Math.max(10, 8 + lv * .7);
+      const maxSize = 26 + lv * 2.3 + game.elapsed * 0.04;
+      let size = rand(minSize, maxSize);
+      if (Math.random() < .23) size *= .72;
+      const elite = !initial && game.elapsed > 75 && Math.random() < .08;
+      const color = elite ? "#ffbe73" : ["#78c8ff", "#ffd86b", "#ff9f7e", "#86ffd2"][Math.floor(rand(0,4))];
+      game.entities.enemies.push(new EnemyFish(pos.x, pos.y, size, color, elite));
+    }
+
+    function spawnHazard() {
+      const types = ["jelly", "bomb", "whirl", "toxic"];
+      const kind = types[Math.floor(Math.random() * types.length)];
+      const h = { kind, x: rand(60, WORLD.w - 60), y: rand(60, WORLD.h - 60), life: rand(18, 34), r: rand(20, 42), phase: rand(0,6), triggered: false, timer: 0 };
+      if (kind === "whirl") h.r = rand(34, 56);
+      if (kind === "toxic") h.r = rand(45, 72);
+      if (kind === "bomb") { h.r = rand(18, 25); h.life = rand(30, 46); }
+      game.entities.hazards.push(h);
+      if (game.entities.hazards.length > 24) game.entities.hazards.shift();
+    }
+
+    function spawnPowerup() {
+      const type = POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)];
+      const map = {
+        invincible: { color: "#ffe97f", icon: "盾" },
+        haste: { color: "#8dffca", icon: "速" },
+        magnet: { color: "#ffb0ff", icon: "吸" },
+        heal: { color: "#94ffb2", icon: "血" },
+        double: { color: "#ffc06c", icon: "倍" }
+      };
+      const c = map[type];
+      game.entities.powerups.push({ x: rand(40, WORLD.w - 40), y: rand(40, WORLD.h - 40), type, r: 14, color: c.color, icon: c.icon, life: rand(12, 22), float: 0 });
+    }
+
+    function onEatFood(f) {
+      const p = game.player;
+      let gain = Math.round((f.score + (Math.random() < 0.12 ? f.score * 1.5 : 0)) * p.multiplier * (p.doubleScore > 0 ? 2 : 1));
+      game.score += gain;
+      p.gainExp(f.exp);
+      game.kills++;
+      if (game.mission?.type === "eatInTime") game.mission.progress++;
+      triggerCombo(gain, f.x, f.y, false, Math.random() < .2);
+      burst(f.x, f.y, 8, f.color, 180);
+      playSfx("eat");
+    }
+
+    function triggerCombo(gain, x, y, elite = false, crit = false) {
+      game.comboTimer = 3.2;
+      game.combo += 1;
+      game.highestCombo = Math.max(game.highestCombo, game.combo);
+      if (game.mission?.type === "combo") game.mission.progress = Math.max(game.mission.progress, game.combo);
+      const comboBonus = game.combo >= 3 ? 1 + Math.min(0.45, game.combo * 0.03) : 1;
+      game.score += Math.round(gain * (comboBonus - 1));
+      const txt = `${crit ? "暴击! " : ""}+${Math.round(gain * comboBonus)}${elite ? " 精英" : ""}`;
+      popup(x, y, txt, crit ? "#ffe27f" : "#d5fdff", elite ? 22 : 18);
+    }
+
+    function damagePlayer(amount) {
+      const p = game.player;
+      if (p.invincible > 0) return;
+      p.hp -= amount;
+      p.hurtFlash = .2;
+      playSfx("hurt");
+    }
+
+    function explodeBomb(b) {
+      burst(b.x, b.y, 36, "#ff956f", 420);
+      popup(b.x, b.y, "爆炸!", "#ffb78f", 20);
+      const p = game.player;
+      const d = Math.hypot(p.x - b.x, p.y - b.y);
+      if (d < 180 && p.invincible <= 0) damagePlayer((180 - d) * 0.18 + 8);
+      for (const e of game.entities.enemies) {
+        const de = Math.hypot(e.x - b.x, e.y - b.y);
+        if (de < 170) e.hp -= (170 - de) * .45;
+      }
+      game.entities.enemies = game.entities.enemies.filter(e => e.hp > 0);
+      playSfx("explode");
+    }
+
+    function chooseMission() {
+      const pool = [
+        { type: "eatInTime", text: "60秒内吞掉10个目标", goal: 10, progress: 0, timer: 60 },
+        { type: "combo", text: "连击达到8次不中断", goal: 8, progress: 0, timer: 999 },
+        { type: "elite", text: "击败1条精英鱼", goal: 1, progress: 0, timer: 999 }
+      ];
+      game.mission = pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    function updateMission(dt) {
+      const m = game.mission;
+      if (!m) return;
+      m.timer -= dt;
+      let done = m.progress >= m.goal;
+      if (m.type === "eatInTime" && m.timer <= 0) done = false;
+
+      if (done) {
+        const bonus = 260 + game.player.level * 45;
+        game.score += bonus;
+        burst(game.player.x, game.player.y, 36, "#a0ffe4", 320);
+        popup(game.player.x, game.player.y, `任务完成 +${bonus}`, "#9fffca", 22);
+        playSfx("mission");
+        chooseMission();
+      } else if (m.timer <= 0 && m.type === "eatInTime") {
+        popup(game.player.x, game.player.y, "任务失败，已刷新", "#ffb2b2", 18);
+        chooseMission();
+      }
+    }
+
+    function updateHUD() {
+      const p = game.player;
+      ui.scoreText.textContent = Math.floor(game.score);
+      ui.levelText.textContent = `Lv${p.level} / ${Math.round(p.size)}`;
+      ui.hpText.textContent = `${Math.max(0, Math.round(p.hp))}/${Math.round(p.maxHp)}`;
+      ui.hpBar.style.width = `${clamp((p.hp / p.maxHp) * 100, 0, 100)}%`;
+      ui.comboText.textContent = `x${game.combo}`;
+      ui.comboText.className = "value " + (game.combo >= 6 ? "good" : "");
+
+      const dc = p.dashCooldown <= 0 ? 0 : p.dashCooldown / 4.2;
+      ui.dashText.textContent = p.dashCooldown <= 0 ? "就绪" : `${p.dashCooldown.toFixed(1)}s`;
+      ui.dashBar.style.width = `${(1 - dc) * 100}%`;
+
+      const buffs = [];
+      if (p.invincible > 0) buffs.push(`无敌${p.invincible.toFixed(0)}s`);
+      if (p.haste > 0) buffs.push(`加速${p.haste.toFixed(0)}s`);
+      if (p.magnet > 0) buffs.push(`磁吸${p.magnet.toFixed(0)}s`);
+      if (p.doubleScore > 0) buffs.push(`双倍${p.doubleScore.toFixed(0)}s`);
+      ui.buffText.textContent = `增益：${buffs.length ? buffs.join(" | ") : "无"}`;
+
+      const m = game.mission;
+      const timeTxt = m.type === "eatInTime" ? `（${Math.max(0, Math.ceil(m.timer))}s）` : "";
+      ui.missionText.textContent = `${m.text}${timeTxt} ${m.progress}/${m.goal}`;
+      ui.missionBar.style.width = `${clamp(m.progress / m.goal * 100, 0, 100)}%`;
+    }
+
+    // ===== 辅助 =====
+    function setPointer(x, y, active) { game.pointer.x = x; game.pointer.y = y; game.pointer.active = active; }
+    function onTouchStart(e) {
+      e.preventDefault();
+      if (!e.touches[0]) return;
+      const t = e.touches[0];
+      setPointer(t.clientX, t.clientY, true);
+      const now = performance.now();
+      if (now - game.pointer.doubleTapAt < 300) tryDash();
+      game.pointer.doubleTapAt = now;
+    }
+    function onTouchMove(e) {
+      e.preventDefault();
+      if (!e.touches[0]) return;
+      const t = e.touches[0];
+      setPointer(t.clientX, t.clientY, true);
+    }
+
+    function tryDash() {
+      const p = game.player;
+      if (!p || p.dashCooldown > 0) return;
+      p.dashCooldown = 4.2;
+      p.dashTime = 0.55;
+      burst(p.x, p.y, 12, "#9aefff", 220);
+      playSfx("dash");
+    }
+
+    function canEat(player, r) { return player.size * .2 + player.eatRadius > r * .9; }
+    function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+    function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+    function rand(min, max) { return Math.random() * (max - min) + min; }
+    function nearest(arr, x, y, maxD, cond) {
+      let best = null, bd = maxD;
+      for (const o of arr) {
+        if (cond && !cond(o)) continue;
+        const d = Math.hypot(o.x - x, o.y - y);
+        if (d < bd) { bd = d; best = o; }
+      }
+      return best;
+    }
+    function shade(hex, percent) {
+      const f = parseInt(hex.slice(1), 16);
+      const t = percent < 0 ? 0 : 255;
+      const p = Math.abs(percent) / 100;
+      const R = f >> 16, G = (f >> 8) & 0x00FF, B = f & 0x0000FF;
+      return "#" + (0x1000000 + (Math.round((t - R) * p) + R) * 0x10000 + (Math.round((t - G) * p) + G) * 0x100 + (Math.round((t - B) * p) + B)).toString(16).slice(1);
+    }
+
+    function burst(x, y, count, color, spread) {
+      for (let i = 0; i < count; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const s = Math.random() * spread;
+        game.entities.particles.push({
+          x, y,
+          vx: Math.cos(a) * s,
+          vy: Math.sin(a) * s,
+          gravity: 40,
+          life: rand(.25, .8), maxLife: .8,
+          size: rand(1.5, 4.2), color
+        });
+      }
+    }
+
+    function popup(wx, wy, text, color = "#fff", size = 18) {
+      const el = document.createElement("div");
+      el.className = "popup";
+      el.textContent = text;
+      el.style.color = color;
+      el.style.fontSize = `${size}px`;
+      el.style.left = `${wx - game.camera.x}px`;
+      el.style.top = `${wy - game.camera.y}px`;
+      ui.floating.appendChild(el);
+      setTimeout(() => el.remove(), 900);
+    }
+
+    function toggleMute() {
+      game.soundsOn = !game.soundsOn;
+      ui.muteBtn.textContent = `音效：${game.soundsOn ? "开" : "关"}`;
+      ui.startMuteBtn.textContent = `音效：${game.soundsOn ? "开" : "关"}`;
+    }
+
+    // 音效接口（可接外部文件/WebAudio）
+    function playSfx(name) {
+      if (!game.soundsOn) return;
+      // 这里预留接口；未来可根据 name 映射 AudioBuffer 或 <audio> 标签播放。
+      // 当前使用极轻量提示（可删）：
+      if (name === "hurt" && navigator.vibrate) navigator.vibrate(18);
+    }
+
+    showMenu();
+  })();
+  </script>
+
+  <!--
+  运行方式：
+  1) 直接双击本文件 index.html 即可开始游戏。
+  2) 或在当前目录运行 `python -m http.server` 后访问 http://localhost:8000 。
+  -->
+</body>
 </html>
