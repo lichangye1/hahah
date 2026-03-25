@@ -3,57 +3,304 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>墨影格斗 · Ink Duel</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>墨影格斗 · 单文件版</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --paper: #ececec;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+      background:
+        radial-gradient(circle at 20% 15%, #333 0%, transparent 28%),
+        radial-gradient(circle at 80% 70%, #2a2a2a 0%, transparent 32%),
+        linear-gradient(135deg, #030303, #121212 50%, #050505);
+      color: var(--paper);
+      display: grid;
+      place-items: center;
+    }
+    .app { width: min(96vw, 1300px); display: grid; gap: 10px; }
+    .topbar {
+      display: flex; justify-content: space-between; align-items: end; gap: 12px;
+      padding: 8px 14px; border: 1px solid #3a3a3a; background: linear-gradient(180deg, #151515, #0f0f0f);
+    }
+    .topbar h1 { margin: 0; font-size: clamp(20px, 3vw, 34px); }
+    .topbar p { margin: 0; color: #b9b9b9; font-size: 14px; }
+    .menu {
+      display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center;
+      border: 1px solid #393939; background: #101010f0; padding: 10px 14px;
+    }
+    .pickers { display: flex; gap: 14px; flex-wrap: wrap; }
+    label { display: grid; gap: 6px; font-weight: 700; }
+    select {
+      min-width: 200px; background: #1b1b1b; color: var(--paper);
+      border: 1px solid #4b4b4b; border-radius: 6px; padding: 7px 10px;
+    }
+    .controls { display: flex; gap: 12px; flex-wrap: wrap; color: #c8c8c8; font-size: 14px; }
+    button {
+      border: 1px solid #666; background: linear-gradient(180deg, #f0f0f0, #bbbbbb); color: #0b0b0b;
+      border-radius: 8px; padding: 10px 16px; font-weight: 800; cursor: pointer;
+    }
+    .hud { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; }
+    .hp-wrap { display: grid; gap: 6px; }
+    .hp-wrap.enemy { text-align: right; }
+    .name { font-weight: 800; letter-spacing: 1px; }
+    .hp-bg { height: 18px; border: 1px solid #555; background: #191919; overflow: hidden; }
+    .hp { height: 100%; background: linear-gradient(90deg, #f3f3f3, #bcbcbc); transition: width .08s linear; }
+    .center-msg { min-width: 180px; text-align: center; font-size: 22px; font-weight: 900; text-shadow: 0 0 12px #ffffff4a; }
+    canvas { width: 100%; aspect-ratio: 16 / 9; border: 1px solid #3b3b3b; background: #090909; }
+    .tips {
+      display: flex; justify-content: space-between; gap: 10px; color: #b5b5b5;
+      font-size: 13px; border: 1px solid #333; padding: 8px 12px; background: #101010;
+    }
+    @media (max-width: 900px) { .menu { grid-template-columns: 1fr; } .tips { flex-direction: column; } }
+  </style>
 </head>
 <body>
   <main class="app">
     <header class="topbar">
       <h1>墨影格斗 · Ink Duel</h1>
-      <p>黑白水墨风 · 快节奏对决 · 参考暗影格斗手感</p>
+      <p>单文件网页 · 黑白水墨风 · 参考暗影格斗</p>
     </header>
 
     <section class="menu" id="menu">
       <div class="pickers">
-        <label>你的角色
-          <select id="playerPick"></select>
-        </label>
-        <label>对手角色
-          <select id="enemyPick"></select>
-        </label>
+        <label>你的角色<select id="playerPick"></select></label>
+        <label>对手角色<select id="enemyPick"></select></label>
       </div>
       <div class="controls">
-        <div><b>移动：</b>A / D</div>
-        <div><b>跳跃：</b>W</div>
-        <div><b>防御：</b>S（按住）</div>
-        <div><b>轻击：</b>J</div>
-        <div><b>重击：</b>K</div>
-        <div><b>冲刺：</b>L</div>
+        <div><b>移动：</b>A / D</div><div><b>跳跃：</b>W</div><div><b>防御：</b>S</div>
+        <div><b>轻击：</b>J</div><div><b>重击：</b>K</div><div><b>冲刺：</b>L</div>
       </div>
       <button id="startBtn">开始对战</button>
     </section>
 
     <section class="hud" id="hud">
-      <div class="hp-wrap">
-        <div class="name" id="pName"></div>
-        <div class="hp-bg"><div class="hp" id="pHp"></div></div>
-      </div>
+      <div class="hp-wrap"><div class="name" id="pName"></div><div class="hp-bg"><div class="hp" id="pHp"></div></div></div>
       <div class="center-msg" id="roundMsg">ROUND 1</div>
-      <div class="hp-wrap enemy">
-        <div class="name" id="eName"></div>
-        <div class="hp-bg"><div class="hp" id="eHp"></div></div>
-      </div>
+      <div class="hp-wrap enemy"><div class="name" id="eName"></div><div class="hp-bg"><div class="hp" id="eHp"></div></div></div>
     </section>
 
-    <canvas id="game" width="1280" height="720" aria-label="fighting game"></canvas>
-
-    <section class="tips">
-      <span>连段建议：J → J → K</span>
-      <span>防御可减伤 70%</span>
-      <span>重击有硬直，注意时机</span>
-    </section>
+    <canvas id="game" width="1280" height="720"></canvas>
+    <section class="tips"><span>连段建议：J → J → K</span><span>防御可减伤 70%</span><span>重击有硬直，注意时机</span></section>
   </main>
 
-  <script src="script.js"></script>
+  <script>
+    const chars = [
+      { id: 'ghost', name: '影拳·无常', speed: 460, jump: 940, atk: 15, heavy: 27, reach: 105, tint: '#f4f4f4' },
+      { id: 'blade', name: '断刃·夜枭', speed: 430, jump: 980, atk: 18, heavy: 31, reach: 112, tint: '#d8d8d8' },
+      { id: 'monk', name: '墨僧·玄骨', speed: 390, jump: 900, atk: 22, heavy: 34, reach: 95, tint: '#ededed' },
+      { id: 'assassin', name: '飞鸦·残影', speed: 500, jump: 1020, atk: 14, heavy: 25, reach: 98, tint: '#cdcdcd' },
+    ];
+
+    const cfg = { gravity: 2500, ground: 610, stageLeft: 100, stageRight: 1180, friction: 0.83 };
+    const el = {
+      canvas: document.getElementById('game'), startBtn: document.getElementById('startBtn'),
+      playerPick: document.getElementById('playerPick'), enemyPick: document.getElementById('enemyPick'),
+      pHp: document.getElementById('pHp'), eHp: document.getElementById('eHp'),
+      pName: document.getElementById('pName'), eName: document.getElementById('eName'), msg: document.getElementById('roundMsg')
+    };
+    const ctx = el.canvas.getContext('2d');
+    const key = Object.create(null);
+    const game = { running: false, over: false, shake: 0, hitStop: 0, particles: [], player: null, enemy: null, aiTimer: 0, roundTimer: 99, last: performance.now() };
+
+    function fillRoleOptions() {
+      chars.forEach((c) => {
+        const p = document.createElement('option'); p.value = c.id; p.textContent = c.name;
+        const e = p.cloneNode(true);
+        el.playerPick.appendChild(p); el.enemyPick.appendChild(e);
+      });
+      el.playerPick.value = chars[0].id;
+      el.enemyPick.value = chars[1].id;
+    }
+
+    function makeFighter(def, x, dir, bot = false) {
+      return { def, x, y: cfg.ground, vx: 0, vy: 0, dir, hp: 100, bot, block: false, onGround: true, moveInt: 0, attackTimer: 0, hurtTimer: 0, cooldown: 0, dashing: 0, canDash: 0, combo: 0, comboReset: 0 };
+    }
+
+    function reset() {
+      const pDef = chars.find((c) => c.id === el.playerPick.value) || chars[0];
+      const eDef = chars.find((c) => c.id === el.enemyPick.value) || chars[1];
+      game.player = makeFighter(pDef, 300, 1, false);
+      game.enemy = makeFighter(eDef, 980, -1, true);
+      game.running = true; game.over = false; game.roundTimer = 99; game.particles.length = 0;
+      el.pName.textContent = pDef.name; el.eName.textContent = eDef.name; el.msg.textContent = 'FIGHT!';
+      setTimeout(() => { if (!game.over) el.msg.textContent = 'ROUND 1'; }, 1000);
+    }
+
+    function spawnInk(x, y, count = 12) {
+      for (let i = 0; i < count; i++) {
+        const a = Math.random() * Math.PI * 2, s = 120 + Math.random() * 260;
+        game.particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 0.35 + Math.random() * 0.35, size: 2 + Math.random() * 7, gray: 160 + Math.random() * 70 });
+      }
+    }
+
+    function attack(attacker, defender, heavy = false) {
+      if (attacker.cooldown > 0 || attacker.attackTimer > 0) return;
+      const range = attacker.def.reach + (heavy ? 16 : 0);
+      const dist = Math.abs(defender.x - attacker.x);
+      const sameSide = Math.sign(defender.x - attacker.x) === attacker.dir;
+      attacker.attackTimer = heavy ? 0.28 : 0.16;
+      attacker.cooldown = heavy ? 0.35 : 0.12;
+      if (dist < range && sameSide && Math.abs(defender.y - attacker.y) < 80) {
+        const base = heavy ? attacker.def.heavy : attacker.def.atk;
+        const blocked = defender.block && !heavy;
+        const dmg = blocked ? base * 0.3 : base;
+        defender.hp = Math.max(0, defender.hp - dmg);
+        defender.hurtTimer = 0.15;
+        defender.vx += attacker.dir * (heavy ? 280 : 180);
+        defender.vy = heavy ? -120 : defender.vy;
+        attacker.combo += 1;
+        attacker.comboReset = 1;
+        game.shake = heavy ? 8 : 4;
+        game.hitStop = heavy ? 0.06 : 0.03;
+        spawnInk(defender.x, defender.y - 40, heavy ? 24 : 15);
+        if (defender.hp <= 0) {
+          game.over = true; game.running = false;
+          el.msg.textContent = attacker.bot ? '你输了' : '你赢了';
+          spawnInk(defender.x, defender.y - 70, 46);
+        }
+      }
+    }
+
+    function dash(f) {
+      if (f.canDash > 0 || f.attackTimer > 0) return;
+      f.dashing = 0.12; f.canDash = 0.8; f.vx = f.dir * (f.def.speed * 1.8);
+    }
+
+    function controlPlayer() {
+      const p = game.player;
+      p.block = !!key['s'];
+      let move = 0;
+      if (key['a']) move -= 1;
+      if (key['d']) move += 1;
+      p.moveInt = move;
+      if (move !== 0) p.dir = move;
+      if (key['w'] && p.onGround) { p.vy = -p.def.jump; p.onGround = false; }
+    }
+
+    function controlEnemy(dt) {
+      const e = game.enemy, p = game.player;
+      e.block = false;
+      game.aiTimer -= dt;
+      const dx = p.x - e.x, dist = Math.abs(dx);
+      e.dir = dx > 0 ? 1 : -1;
+      if (dist > 140) e.moveInt = e.dir; else if (dist < 85) e.moveInt = -e.dir; else e.moveInt = 0;
+      if (game.aiTimer <= 0) {
+        game.aiTimer = 0.08 + Math.random() * 0.12;
+        if (dist < 120 && Math.random() < 0.6) attack(e, p, false);
+        if (dist < 130 && Math.random() < 0.25) attack(e, p, true);
+        if (Math.random() < 0.12) e.block = true;
+        if (Math.random() < 0.08 && e.onGround) e.vy = -e.def.jump * 0.85;
+      }
+    }
+
+    function stepFighter(f, dt) {
+      f.attackTimer = Math.max(0, f.attackTimer - dt);
+      f.hurtTimer = Math.max(0, f.hurtTimer - dt);
+      f.cooldown = Math.max(0, f.cooldown - dt);
+      f.canDash = Math.max(0, f.canDash - dt);
+      f.comboReset = Math.max(0, f.comboReset - dt);
+      if (f.comboReset === 0) f.combo = 0;
+
+      if (f.attackTimer <= 0) {
+        const speed = f.def.speed * (f.block ? 0.35 : 1);
+        if (f.dashing > 0) f.dashing -= dt;
+        else f.vx += f.moveInt * speed * dt * 8;
+      }
+
+      f.vy += cfg.gravity * dt;
+      f.vx *= cfg.friction;
+      f.x += f.vx * dt;
+      f.y += f.vy * dt;
+      if (f.y >= cfg.ground) { f.y = cfg.ground; f.vy = 0; f.onGround = true; }
+      f.x = Math.max(cfg.stageLeft, Math.min(cfg.stageRight, f.x));
+    }
+
+    function drawBg() {
+      ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0, 0, 1280, 720);
+      const grad = ctx.createLinearGradient(0, 0, 0, 720);
+      grad.addColorStop(0, '#191919'); grad.addColorStop(1, '#060606');
+      ctx.fillStyle = grad; ctx.fillRect(0, 460, 1280, 260);
+      ctx.strokeStyle = '#1f1f1f';
+      for (let i = 0; i < 16; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * 90, 430 + Math.sin(i) * 5);
+        ctx.lineTo(i * 92, 690);
+        ctx.stroke();
+      }
+    }
+
+    function drawFighter(f) {
+      const x = f.x, y = f.y, flip = f.dir;
+      ctx.save(); ctx.translate(x, y); ctx.scale(flip, 1);
+      ctx.globalAlpha = f.hurtTimer > 0 ? 0.7 : 1;
+      ctx.fillStyle = f.def.tint;
+      ctx.beginPath(); ctx.arc(0, -116, 24, 0, Math.PI * 2); ctx.fill();
+      ctx.fillRect(-14, -95, 28, 86);
+      const armY = f.attackTimer > 0 ? -82 : -72;
+      const armX = f.attackTimer > 0 ? 44 : 30;
+      ctx.fillRect(2, armY, armX, 9); ctx.fillRect(-40, -72, 35, 9);
+      ctx.fillRect(-10, -10, 8, 65); ctx.fillRect(2, -10, 8, 65);
+      if (f.block) { ctx.strokeStyle = '#f1f1f1'; ctx.lineWidth = 4; ctx.strokeRect(18, -102, 30, 90); }
+      ctx.restore();
+      ctx.fillStyle = '#000'; ctx.globalAlpha = 0.36;
+      ctx.beginPath(); ctx.ellipse(x, 628, 38, 10, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    function drawParticles(dt) {
+      for (let i = game.particles.length - 1; i >= 0; i--) {
+        const p = game.particles[i];
+        p.life -= dt;
+        if (p.life <= 0) { game.particles.splice(i, 1); continue; }
+        p.vy += 900 * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+        ctx.fillStyle = `rgb(${p.gray},${p.gray},${p.gray})`;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+
+    function updateHud() { el.pHp.style.width = `${game.player.hp}%`; el.eHp.style.width = `${game.enemy.hp}%`; }
+
+    function frame(t) {
+      const dt = Math.min((t - game.last) / 1000, 0.033);
+      game.last = t;
+      drawBg();
+      if (game.hitStop > 0) game.hitStop -= dt;
+      else if (game.running) {
+        controlPlayer();
+        controlEnemy(dt);
+        stepFighter(game.player, dt);
+        stepFighter(game.enemy, dt);
+        if (game.player.attackTimer === 0 && key['j']) attack(game.player, game.enemy, false);
+        if (game.player.attackTimer === 0 && key['k']) attack(game.player, game.enemy, true);
+        if (key['l']) dash(game.player);
+        game.roundTimer = Math.max(0, game.roundTimer - dt * 0.35);
+        if (game.roundTimer <= 0 && !game.over) {
+          game.over = true; game.running = false;
+          el.msg.textContent = game.player.hp >= game.enemy.hp ? '时间到，你赢了' : '时间到，你输了';
+        }
+      }
+      const shakeX = (Math.random() - 0.5) * game.shake;
+      const shakeY = (Math.random() - 0.5) * game.shake;
+      game.shake *= 0.88;
+      ctx.save(); ctx.translate(shakeX, shakeY);
+      drawFighter(game.player); drawFighter(game.enemy); drawParticles(dt);
+      ctx.restore();
+      updateHud();
+      requestAnimationFrame(frame);
+    }
+
+    window.addEventListener('keydown', (e) => { key[e.key.toLowerCase()] = true; });
+    window.addEventListener('keyup', (e) => { key[e.key.toLowerCase()] = false; });
+    el.startBtn.addEventListener('click', reset);
+
+    fillRoleOptions();
+    reset();
+    requestAnimationFrame(frame);
+  </script>
 </body>
 </html>
