@@ -1135,9 +1135,13 @@
 
     // ===== 辅助 =====
     function setPointer(x, y, active) { game.pointer.x = x; game.pointer.y = y; game.pointer.active = active; }
+    function isUIControlTarget(target) {
+      return !!(target && target.closest && target.closest("button, [role='button'], a, input, select, textarea, label"));
+    }
     function onTouchStart(e) {
-      e.preventDefault();
       if (!e.touches[0]) return;
+      if (isUIControlTarget(e.target)) return;
+      e.preventDefault();
       const t = e.touches[0];
       setPointer(t.clientX, t.clientY, true);
       const now = performance.now();
@@ -1145,8 +1149,9 @@
       game.pointer.doubleTapAt = now;
     }
     function onTouchMove(e) {
-      e.preventDefault();
       if (!e.touches[0]) return;
+      if (isUIControlTarget(e.target)) return;
+      e.preventDefault();
       const t = e.touches[0];
       setPointer(t.clientX, t.clientY, true);
     }
