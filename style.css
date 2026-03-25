@@ -1,120 +1,131 @@
 :root {
-  color-scheme: light;
-  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  color-scheme: dark;
+  --ink-0: #050505;
+  --ink-1: #111;
+  --ink-2: #1f1f1f;
+  --ink-3: #2c2c2c;
+  --paper: #ececec;
+  --paper-soft: #d6d6d6;
+  --danger: #ff6d6d;
 }
 
+* { box-sizing: border-box; }
 body {
   margin: 0;
-  background: linear-gradient(180deg, #7ccf6c, #5db35d);
   min-height: 100vh;
+  font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+  background:
+    radial-gradient(circle at 20% 15%, #333 0%, transparent 28%),
+    radial-gradient(circle at 80% 70%, #2a2a2a 0%, transparent 32%),
+    linear-gradient(135deg, #030303, #121212 50%, #050505);
+  color: var(--paper);
   display: grid;
   place-items: center;
 }
 
-.game-shell {
-  width: min(95vw, 960px);
-  background: #f6fff6;
-  border-radius: 12px;
-  box-shadow: 0 12px 30px rgb(0 0 0 / 25%);
-  padding: 16px;
-}
-
-h1 {
-  margin: 0 0 8px;
-}
-
-.toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.card {
-  border: 1px solid #2f7b32;
-  background: #e7f8e4;
-  border-radius: 8px;
-  padding: 8px 12px;
-  cursor: pointer;
-}
-
-.card.active {
-  outline: 3px solid #2f7b32;
-}
-
-.card.secondary {
-  margin-left: auto;
-  background: #fff;
-}
-
-#hint {
-  margin: 6px 0 10px;
-  color: #204b24;
-}
-
-.board {
+.app {
+  width: min(96vw, 1300px);
   display: grid;
-  grid-template-columns: repeat(9, 1fr);
-  gap: 4px;
-  background: #4f8d4f;
-  border-radius: 8px;
-  padding: 6px;
+  gap: 10px;
 }
 
-.cell {
-  background: #9fe18f;
-  aspect-ratio: 1;
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 12px;
+  padding: 8px 14px;
+  border: 1px solid #3a3a3a;
+  background: linear-gradient(180deg, #151515, #0f0f0f);
+}
+.topbar h1 { margin: 0; font-size: clamp(20px, 3vw, 34px); }
+.topbar p { margin: 0; color: #b9b9b9; font-size: 14px; }
+
+.menu {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid #393939;
+  background: #101010f0;
+  padding: 10px 14px;
+}
+.pickers { display: flex; gap: 14px; flex-wrap: wrap; }
+label { display: grid; gap: 6px; font-weight: 700; }
+select {
+  min-width: 200px;
+  background: #1b1b1b;
+  color: var(--paper);
+  border: 1px solid #4b4b4b;
   border-radius: 6px;
-  position: relative;
-  overflow: hidden;
-  border: 1px solid rgb(0 0 0 / 10%);
+  padding: 7px 10px;
 }
-
-.plant,
-.zombie,
-.pea {
-  position: absolute;
-  translate: -50% -50%;
-  user-select: none;
-}
-
-.plant {
-  left: 50%;
-  top: 55%;
-  font-size: 28px;
-}
-
-.zombie {
-  left: 95%;
-  top: 55%;
-  font-size: 28px;
-}
-
-.pea {
-  left: 55%;
-  top: 52%;
+.controls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: #c8c8c8;
   font-size: 14px;
 }
-
-.hp {
-  position: absolute;
-  left: 4px;
-  top: 4px;
-  font-size: 10px;
-  background: rgb(255 255 255 / 75%);
-  padding: 1px 4px;
-  border-radius: 10px;
-}
-
-.actions {
-  margin-top: 10px;
-}
-
-#restart {
-  border: none;
-  background: #2f7b32;
-  color: white;
+button {
+  border: 1px solid #666;
+  background: linear-gradient(180deg, #f0f0f0, #bbbbbb);
+  color: #0b0b0b;
   border-radius: 8px;
-  padding: 8px 14px;
+  padding: 10px 16px;
+  font-weight: 800;
   cursor: pointer;
+}
+button:active { transform: scale(.98); }
+
+.hud {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 10px;
+}
+.hp-wrap { display: grid; gap: 6px; }
+.hp-wrap.enemy { text-align: right; }
+.name { font-weight: 800; letter-spacing: 1px; }
+.hp-bg {
+  height: 18px;
+  border: 1px solid #555;
+  background: #191919;
+  overflow: hidden;
+}
+.hp {
+  height: 100%;
+  background: linear-gradient(90deg, #f3f3f3, #bcbcbc);
+  transition: width .08s linear;
+}
+.center-msg {
+  min-width: 180px;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 900;
+  color: #f2f2f2;
+  text-shadow: 0 0 12px #ffffff4a;
+}
+
+canvas {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 1px solid #3b3b3b;
+  background: #090909;
+}
+
+.tips {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: #b5b5b5;
+  font-size: 13px;
+  border: 1px solid #333;
+  padding: 8px 12px;
+  background: #101010;
+}
+
+@media (max-width: 900px) {
+  .menu { grid-template-columns: 1fr; }
+  .tips { flex-direction: column; }
 }
